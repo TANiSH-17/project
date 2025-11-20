@@ -1,0 +1,16 @@
+{
+  "name": "creator-rewards-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "start": "pnpm -r start"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

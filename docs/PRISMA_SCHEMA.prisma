@@ -1,0 +1,195 @@
+// Draft Prisma schema (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  handle     String?  @unique
+  role       Role     @default(PARTICIPANT)
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+  profile    Profile?
+  brand      Brand[]
+  applications Application[]
+  participations Participation[]
+  payouts    Payout[]
+}
+
+enum Role { ADMIN BRAND PARTICIPANT }
+
+model Profile {
+  userId      String  @id
+  user        User    @relation(fields: [userId], references: [id])
+  displayName String?
+  avatarUrl   String?
+  socials     Json?
+  kycStatus   String? // pending, verified, failed
+}
+
+model Brand {
+  id          String   @id @default(cuid())
+  ownerUserId String
+  owner       User     @relation(fields: [ownerUserId], references: [id])
+  name        String
+  description String?
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  campaigns   Campaign[]
+}
+
+model Campaign {
+  id               String   @id @default(cuid())
+  brandId          String
+  brand            Brand    @relation(fields: [brandId], references: [id])
+  title            String
+  brief            String
+  guidelines       String?
+  status           CampaignStatus @default(DRAFT)
+  startAt          DateTime?
+  endAt            DateTime?
+  budgetTotal      Int
+  budgetRemaining  Int
+  currency         String @default("USD")
+  metricType       MetricType @default(VIEWS)
+  ratePerThousand  Int // in cents per 1000
+  dailyCap         Int?
+  perUserCap       Int?
+  maxParticipants  Int?
+  approvalMode     String @default("manual") // manual|auto
+  createdAt        DateTime @default(now())
+  creatives        CampaignCreative[]
+  applications     Application[]
+  participations   Participation[]
+}
+
+enum CampaignStatus { DRAFT REVIEWING PUBLISHED PAUSED COMPLETED }
+
+enum MetricType { VIEWS CLICKS INTERACTIONS CONVERSIONS }
+
+model CampaignCreative {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  assetUrl   String
+  type       String
+  notes      String?
+}
+
+model Application {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  message     String?
+  status      ApplicationStatus @default(SUBMITTED)
+  reviewedBy  String?
+  createdAt   DateTime @default(now())
+}
+
+enum ApplicationStatus { SUBMITTED APPROVED REJECTED }
+
+model Participation {
+  id            String   @id @default(cuid())
+  campaignId    String
+  campaign      Campaign @relation(fields: [campaignId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id])
+  status        ParticipationStatus @default(ACTIVE)
+  trackingLink  String   @unique
+  slotAssignedAt DateTime @default(now())
+  submissions   ContentSubmission[]
+  metrics       MetricSnapshot[]
+  accruals      EarningAccrual[]
+
+  @@unique([campaignId, userId])
+}
+
+enum ParticipationStatus { ACTIVE COMPLETED PAID REJECTED }
+
+model ContentSubmission {
+  id              String   @id @default(cuid())
+  participationId String
+  participation   Participation @relation(fields: [participationId], references: [id])
+  platform        String
+  postUrl         String
+  postId          String?
+  submittedAt     DateTime @default(now())
+  status          SubmissionStatus @default(PENDING_REVIEW)
+  notes           String?
+}
+
+enum SubmissionStatus { PENDING_REVIEW VERIFIED REJECTED }
+
+model MetricSnapshot {
+  id              String   @id @default(cuid())
+  participationId String
+  participation   Participation @relation(fields: [participationId], references: [id])
+  platform        String
+  metricType      MetricType
+  value           Int
+  observedAt      DateTime
+  source          String // api|user|scrape
+  raw             Json?
+
+  @@index([participationId, metricType, observedAt])
+}
+
+model EarningAccrual {
+  id              String   @id @default(cuid())
+  participationId String
+  participation   Participation @relation(fields: [participationId], references: [id])
+  metricType      MetricType
+  value           Int // units (e.g., views)
+  amount          Int // cents
+  currency        String @default("USD")
+  status          AccrualStatus @default(PENDING)
+  holdUntil       DateTime?
+  createdAt       DateTime @default(now())
+}
+
+enum AccrualStatus { PENDING LOCKED PAID CLAWED_BACK }
+
+model LedgerEntry {
+  id            String   @id @default(cuid())
+  type          String
+  debitAccount  String
+  creditAccount String
+  amount        Int
+  currency      String @default("USD")
+  referenceType String
+  referenceId   String
+  createdAt     DateTime @default(now())
+}
+
+model Payout {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  amount     Int
+  currency   String @default("USD")
+  status     String @default("pending")
+  initiatedAt DateTime?
+  completedAt DateTime?
+  processorRef String?
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String
+  action       String
+  targetType   String
+  targetId     String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+}
