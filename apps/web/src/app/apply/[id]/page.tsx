@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../../lib/api';
 
 export default function ApplyPage({ params }: { params: { id: string } }) {
@@ -8,7 +8,7 @@ export default function ApplyPage({ params }: { params: { id: string } }) {
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
 
-  React.useEffect(() => { const v = localStorage.getItem('email'); if (v) setEmail(v); }, []);
+  useEffect(() => { const v = localStorage.getItem('email'); if (v) setEmail(v); }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

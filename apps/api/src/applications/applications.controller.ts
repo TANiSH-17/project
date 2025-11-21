@@ -61,7 +61,7 @@ export class ApplicationsController {
       include: { campaign: true, user: true }
     });
     // add participation if exists
-    const withPart = await Promise.all(apps.map(async a => {
+    const withPart = await Promise.all(apps.map(async (a: any) => {
       const participation = await this.prisma.participation.findUnique({ where: { campaignId_userId: { campaignId: a.campaignId, userId: a.userId } } });
       return { ...a, participation };
     }));

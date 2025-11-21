@@ -23,7 +23,7 @@ export class PayoutsController {
     if (!user) throw new Error('User not found');
     // Sum locked accruals into a payout and mark them paid
     const locked = await this.prisma.earningAccrual.findMany({ where: { participation: { userId: user.id }, status: 'LOCKED' } });
-    const amount = locked.reduce((s, a) => s + a.amount, 0);
+    const amount = locked.reduce((s: number, a: any) => s + a.amount, 0);
     if (amount <= 0) return { ok: false, reason: 'no_locked' };
     const currency = locked[0]?.currency || 'USD';
     const payout = await this.prisma.payout.create({ data: { userId: user.id, amount, currency, status: 'completed', initiatedAt: new Date(), completedAt: new Date(), processorRef: 'demo_' + Date.now() } });

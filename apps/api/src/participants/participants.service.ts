@@ -39,7 +39,7 @@ export class ParticipantsService {
     const now = new Date();
     const pending = await this.prisma.earningAccrual.findMany({ where: { participationId, status: 'PENDING', holdUntil: { lte: now } } });
     if (pending.length === 0) return { locked: 0 };
-    const totalAmount = pending.reduce((s, a) => s + a.amount, 0);
+    const totalAmount = pending.reduce((s: number, a: any) => s + a.amount, 0);
     const budgetRemaining = part.campaign.budgetRemaining;
     const amountToLock = Math.min(totalAmount, budgetRemaining);
     // Lock subset if budget is insufficient
